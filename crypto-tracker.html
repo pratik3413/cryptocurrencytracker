@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Currency Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+    <style>
+        .crypto-card {
+            transition: transform 0.2s;
+        }
+        .crypto-card:hover {
+            transform: translateY(-5px);
+        }
+        .price-up {
+            color: #28a745;
+        }
+        .price-down {
+            color: #dc3545;
+        }
+        .crypto-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">Crypto Currency Tracker</span>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search cryptocurrencies...">
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="cryptoContainer">
+            <!-- Cryptocurrency cards will be inserted here -->
+        </div>
+
+        <div class="text-center mt-4 mb-4" id="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cryptoContainer = document.getElementById('cryptoContainer');
+        const searchInput = document.getElementById('searchInput');
+        const loading = document.getElementById('loading');
+        let cryptoData = [];
+
+        // Fetch cryptocurrency data
+        async function fetchCryptoData() {
+            try {
+                const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false');
+                cryptoData = await response.json();
+                displayCryptos(cryptoData);
+                loading.style.display = 'none';
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                cryptoContainer.innerHTML = '<div class="col-12 text-center text-danger">Error loading cryptocurrency data. Please try again later.</div>';
+                loading.style.display = 'none';
+            }
+        }
+
+        // Display cryptocurrencies
+        function displayCryptos(cryptos) {
+            cryptoContainer.innerHTML = '';
+            
+            cryptos.forEach(crypto => {
+                const priceChangeClass = crypto.price_change_percentage_24h >= 0 ? 'price-up' : 'price-down';
+                const priceChangeIcon = crypto.price_change_percentage_24h >= 0 ? '↑' : '↓';
+                
+                const card = `
+                    <div class="col-12 col-md-6 col-lg-4 mb-4">
+                        <div class="card crypto-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <img src="${crypto.image}" alt="${crypto.name}" class="crypto-icon">
+                                    <h5 class="card-title mb-0">${crypto.name} (${crypto.symbol.toUpperCase()})</h5>
+                                </div>
+                                <div class="card-text">
+                                    <p class="h4 mb-2">$${crypto.current_price.toLocaleString()}</p>
+                                    <p class="mb-2 ${priceChangeClass}">
+                                        ${priceChangeIcon} ${Math.abs(crypto.price_change_percentage_24h).toFixed(2)}%
+                                    </p>
+                                    <p class="mb-2">Market Cap: $${crypto.market_cap.toLocaleString()}</p>
+                                    <p class="mb-0">24h Volume: $${crypto.total_volume.toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                cryptoContainer.innerHTML += card;
+            });
+        }
+
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredCryptos = cryptoData.filter(crypto => 
+                crypto.name.toLowerCase().includes(searchTerm) || 
+                crypto.symbol.toLowerCase().includes(searchTerm)
+            );
+            displayCryptos(filteredCryptos);
+        });
+
+        // Update data every 60 seconds
+        fetchCryptoData();
+        setInterval(fetchCryptoData, 60000);
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
+</body>
+</html>
